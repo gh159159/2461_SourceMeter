@@ -1,0 +1,54 @@
+@font-face {
+    font-family: "basic";
+    font-style: normal;
+    src: url(../fonts/NotoSansKR-Regular.ttf) format('truetype');
+}
+
+:root{
+	--app-color: blue;
+}
+
+body{
+	margin:0;
+	background:#ffffff;
+	font-size:14px;
+	font-family: "basic";
+}
+
+header > div.header img{
+	margin-top:10px;
+	height:50px;
+	width:auto;
+}
+
+/* 사이드바 스타일 */
+.sidebar {
+    height: 100%;
+    width: 200px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #111;
+    overflow-x: hidden;
+    padding-top: 20px;
+}
+
+/* 사이드바 링크 스타일 */
+.sidebar a {
+    padding: 15px 20px;
+    text-decoration: none;
+    font-size: 18px;
+    color: white;
+    display: block;
+}
+
+/* 링크 호버 효과 */
+.sidebar a:hover {
+    background-color: #575757;
+}
+
+/* 메인 콘텐츠 스타일 */
+.content {
+    margin-left: 200px;
+    padding: 20px;
+}
