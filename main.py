@@ -48,12 +48,18 @@ class MainApp(QMainWindow):
 
     def show_realtime_current(self):
         visa_address = self.visa_input.text()
-        if self.realtime_window is None:
-            self.realtime_window = RealtimeCurrentWindow(visa_address)
+        
+        if self.realtime_window:
+            self.realtime_window.close()  # 창 닫기 호출
+            self.realtime_window.deleteLater()  # Qt 이벤트 루프에서 제거
+            self.realtime_window = None
+
+        self.realtime_window = RealtimeCurrentWindow(visa_address)
         self.realtime_window.show()
-        if self.sweep_window is not None:
+
+        if self.sweep_window:
             self.sweep_window.close()
-        if self.compare_window is not None:
+        if self.compare_window:
             self.compare_window.close()
 
     def show_sweep_voltage(self):
