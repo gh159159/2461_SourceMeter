@@ -11,15 +11,15 @@ from datetime import datetime, timedelta
 import csv
 
 class MainWindow(QMainWindow):
-    def __init__(self, visa_address):
+    def __init__(self, visa_address, device_model):
         super().__init__()
-        
+        self.device_model = device_model
         # Initialize Keithley and create canvas
         self.visa_address = visa_address
         self.keithley = None
         self.init_keithley()
 
-        self.setWindowTitle("Keithley 2461 Control Panel")
+        self.setWindowTitle("Keithley Realtime Curr")
         self.setGeometry(500, 100, 1500, 1200)
         
         # Create main widget and layout
@@ -29,17 +29,19 @@ class MainWindow(QMainWindow):
         
         # Create control panel
         control_panel = QHBoxLayout()
-        
+
         # Voltage control widgets
         voltage_layout = QVBoxLayout()
         voltage_label = QLabel("Source Voltage (V):")
         self.voltage_input = QLineEdit("0")
+        self.source_voltage = 0.0
         self.voltage_input.setMaximumWidth(100)
         
         # Current limit control widgets
         current_limit_layout = QVBoxLayout()
         current_limit_label = QLabel("Current Limit (A):")
         self.current_limit_input = QLineEdit("1")
+        self.current_limit = 1.0
         self.current_limit_input.setMaximumWidth(100)
         
         # Set buttons
@@ -90,7 +92,7 @@ class MainWindow(QMainWindow):
         self.is_recording = False
         self.recording_file = None  # File object for the CSV file
         self.csv_writer = None      # CSV writer object
-
+        
     def init_keithley(self):
         """Initialize the Keithley SourceMeter"""
         try:
@@ -101,7 +103,12 @@ class MainWindow(QMainWindow):
             self.keithley = rm.open_resource(self.visa_address)
             self.keithley.write("*RST")
             self.keithley.write(":SENS:FUNC 'CURR'")
-            self.keithley.write(":SENS:CURR:RANG:AUTO ON")
+
+            if self.device_model == "2461":
+                self.keithley.write(":SENS:CURR:RANG:AUTO ON")
+            else:
+                self.keithley.write(":FORMat:ELEMents CURR")
+
             self.keithley.write(":FORM:DATA ASC")
             self.keithley.write(":SOUR:FUNC VOLT")
             self.keithley.write(":SOUR:VOLT:RANG 20")
@@ -113,12 +120,11 @@ class MainWindow(QMainWindow):
 
     def set_voltage(self):
         """Set the source voltage"""
-        global source_voltage
         try:
             voltage = float(self.voltage_input.text())
             if -10 <= voltage <= 20:
                 self.keithley.write(f":SOUR:VOLT {voltage}")
-                source_voltage = voltage  # Update global variable
+                self.source_voltage = voltage  # Update global variable
             else:
                 print("전압제한 범위를 벗어났습니다! (-10[V] ~ 20[V]로 설정돼있습니다.)")
         except ValueError as e:
@@ -126,12 +132,17 @@ class MainWindow(QMainWindow):
 
     def set_current_limit(self):
         """Set the current limit"""
-        global current_limit
         try:
             current_limit_value = float(self.current_limit_input.text())
             if -1.0 < current_limit_value <= 2.0:
-                self.keithley.write(f":SOUR:VOLT:ILIM {current_limit_value}")
-                current_limit = current_limit_value
+                # self.keithley.write(f":SOUR:VOLT:ILIM {current_limit_value}")
+
+                if self.device_model == "2461":
+                    self.keithley.write(f":SOURce:VOLTage:ILIMit {current_limit_value}")
+                else:
+                    self.keithley.write(f"SENS:CURR:PROT {current_limit_value}")
+
+                self.current_limit = current_limit_value
             else:
                 print("전류제한 범위를 벗어났습니다! (-1[A] ~ 2[A]로 설정돼있습니다.)")
         except ValueError as e:
@@ -175,12 +186,18 @@ class MainWindow(QMainWindow):
     def update_graph(self, frame):
         try:
             # Read current value from Keithley
-            current = float(self.keithley.query(":READ?"))
+            if self.device_model == "2461":
+                current = float(self.keithley.query(":READ?"))
+            else:
+                response = self.keithley.query(":READ?")
+                current_str = response.strip().split(',')[0]
+                current = float(current_str)
+
             time_stamps.append(datetime.now())
             current_values.append(current)
 
             # Update QLabel with the latest voltage and current values
-            self.voltage_display.setText(f"Voltage: {source_voltage:.2f} V")
+            self.voltage_display.setText(f"Voltage: {self.source_voltage:.2f} V")
             self.current_display.setText(f"Current: {current:.6f} A")
 
             # Limit data to the last 20 points for display
@@ -218,8 +235,8 @@ class MainWindow(QMainWindow):
             if self.is_recording:
                 self.csv_writer.writerow([
                     time_stamps[-1].strftime('%Y-%m-%d %H:%M:%S.%f'), 
-                    source_voltage, 
-                    current_limit, 
+                    self.source_voltage, 
+                    self.current_limit, 
                     current
                 ])
         
@@ -274,8 +291,6 @@ class MplCanvas(FigureCanvas):
 rm = pyvisa.ResourceManager()
 time_stamps = []
 current_values = []
-source_voltage = 0.0  # Default source voltage
-current_limit = 1  # Default current limit
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -16,11 +16,16 @@ instrument = None
 
 
 class VoltageSweepApp(QMainWindow):
-    def __init__(self, visa_address):
+    def __init__(self, visa_address, device_model):
         super().__init__()
-        self.setWindowTitle("Voltage Sweep - Keithley 2461")
+        self.setWindowTitle("Keithley Sweep Voltage")
         self.setGeometry(500, 100, 1500, 1200)
 
+        self.device_model = device_model
+
+        if device_model not in ["2461", "2410", "2400"]:
+            raise ValueError(f"Unsupported device: {device_model}")
+    
         self.visa_address = visa_address
         
         # Central widget and layout
@@ -180,11 +185,15 @@ def perform_voltage_sweep(self, start_v, end_v, step_v, current_limit):
             instrument.write("*CLS")  # Clear status
             instrument.write(":SOURce:FUNCtion VOLTage")          # Voltage source mode
             instrument.write(":SENSe:FUNCtion 'CURRent'")         # Current measurement mode
-            instrument.write(":SOURce:VOLTage:RANGe:AUTO ON")     # Auto voltage range
-            instrument.write(":SENSe:CURRent:RANGe:AUTO ON")      # Auto current range
-
-            # Set current limit using the input value
-            instrument.write(f":SOURce:VOLTage:ILIMit {current_limit}")  # Current limit 설정
+            
+            if self.device_model == "2461":
+                instrument.write(":SOURce:VOLTage:RANGe:AUTO ON")
+                instrument.write(":SENSe:CURRent:RANGe:AUTO ON")
+                instrument.write(f":SOURce:VOLTage:ILIMit {current_limit}")
+                
+            else:
+                instrument.write(":FORMat:ELEMents CURR")
+                instrument.write(f"SENS:CURR:PROT {current_limit}")
 
             instrument.write(":OUTPut ON")                       # Enable output
 
@@ -195,7 +204,13 @@ def perform_voltage_sweep(self, start_v, end_v, step_v, current_limit):
             try:
                 instrument.write(f":SOURce:VOLTage {voltage}")   # Set voltage
                 instrument.query("*OPC?")                       # Wait for operation completion
-                current = float(instrument.query(":MEASure:CURRent?").strip())  # Measure current
+                
+                if self.device_model == "2461":
+                    current = float(instrument.query(":MEASure:CURRent?"))
+                else:
+                    response = instrument.query(":READ?")
+                    current = float(response.strip().split(',')[0])
+
                 currents.append(current)
                 print(f"Voltage: {voltage}, Current: {current}")  # Debugging output
 

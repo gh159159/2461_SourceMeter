@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 class DiodeComparisonApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Diode Comparison")
+        self.setWindowTitle("6 graph Comparison")
         self.setGeometry(500, 100, 1500, 1200)  # 창 크기 조정
 
         # Central widget and layout
