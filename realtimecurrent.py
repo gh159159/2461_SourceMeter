@@ -111,7 +111,14 @@ class MainWindow(QMainWindow):
 
             self.keithley.write(":FORM:DATA ASC")
             self.keithley.write(":SOUR:FUNC VOLT")
-            self.keithley.write(":SOUR:VOLT:RANG 20")
+
+            if self.device_model == "2461":
+                self.keithley.write(":SOUR:VOLT:RANG 105")
+            elif self.device_model == "2400":
+                self.keithley.write(":SOUR:VOLT:RANG 200")
+            elif self.device_model == "2410":
+                self.keithley.write(":SOUR:VOLT:RANG 1100")
+
             self.keithley.write(":SOUR:VOLT 0")
             self.keithley.write(":OUTP ON")
         except Exception as e:
@@ -120,13 +127,30 @@ class MainWindow(QMainWindow):
 
     def set_voltage(self):
         """Set the source voltage"""
+        # 장비별 전압 범위 딕셔너리 정의
+        VOLTAGE_RANGES = {
+            "2410": (-10, 1100),
+            "2400": (-10, 200),
+            "2461": (-10, 105)
+        }
+        # 장비별 안내 메시지 딕셔너리 정의
+        VOLTAGE_MESSAGES = {
+            "2410": "keithley 2410의 전압범위는 -10[V] ~ 1100[V]로 설정돼있습니다.",
+            "2400": "keithley 2400의 전압범위는 -10[V] ~ 200[V]로 설정돼있습니다.",
+            "2461": "keithley 2461의 전압범위는 -10[V] ~ 105[V]로 설정돼있습니다."
+        }
+
+        min_v, max_v = VOLTAGE_RANGES[self.device_model]
+        message = VOLTAGE_MESSAGES[self.device_model]
+
         try:
             voltage = float(self.voltage_input.text())
-            if -10 <= voltage <= 20:
+            if min_v <= voltage <= max_v:
                 self.keithley.write(f":SOUR:VOLT {voltage}")
                 self.source_voltage = voltage  # Update global variable
             else:
-                print("전압제한 범위를 벗어났습니다! (-10[V] ~ 20[V]로 설정돼있습니다.)")
+                print(message)
+
         except ValueError as e:
             print(f"Invalid voltage value: {e}")
 
@@ -134,9 +158,7 @@ class MainWindow(QMainWindow):
         """Set the current limit"""
         try:
             current_limit_value = float(self.current_limit_input.text())
-            if -1.0 < current_limit_value <= 2.0:
-                # self.keithley.write(f":SOUR:VOLT:ILIM {current_limit_value}")
-
+            if 0 < current_limit_value <= 1.0:
                 if self.device_model == "2461":
                     self.keithley.write(f":SOURce:VOLTage:ILIMit {current_limit_value}")
                 else:
@@ -144,7 +166,7 @@ class MainWindow(QMainWindow):
 
                 self.current_limit = current_limit_value
             else:
-                print("전류제한 범위를 벗어났습니다! (-1[A] ~ 2[A]로 설정돼있습니다.)")
+                print("전류제한 범위를 벗어났습니다! (10[pA] ~ 1[A]로 설정돼있습니다.)")
         except ValueError as e:
             print(f"Invalid current limit value: {e}")
 

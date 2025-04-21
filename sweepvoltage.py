@@ -35,6 +35,8 @@ class VoltageSweepApp(QMainWindow):
 
         # Input fields for voltage sweep parameters
         input_layout = QHBoxLayout()
+        self.gate_voltage_label = QLabel("Gate Voltage (V):")
+        self.gate_voltage_input = QLineEdit("0")
         self.start_voltage_label = QLabel("Start Voltage (V):")
         self.start_voltage_input = QLineEdit("0")
         self.end_voltage_label = QLabel("End Voltage (V):")

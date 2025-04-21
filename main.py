@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel, QMessageBox, QComboBox, QLineEdit
 from realtimecurrent import MainWindow as RealtimeCurrentWindow
 from sweepvoltage import VoltageSweepApp as SweepVoltageWindow
+from mosfetsweep import MOSFETCharacterizationApp as MosfetSweepWindow
 from compare import DiodeComparisonApp as CompareWindow
 import pyvisa
 
@@ -44,16 +45,21 @@ class MainApp(QMainWindow):
         self.sweep_button = QPushButton("전압 스윕")
         self.sweep_button.clicked.connect(self.show_sweep_voltage)
 
+        self.mosfet_button = QPushButton("MOSFET 스윕")
+        self.mosfet_button.clicked.connect(self.show_mosfet_sweep)
+        
         self.compare_button = QPushButton("그래프 비교하기")
         self.compare_button.clicked.connect(self.show_compare_mode)
 
         layout.addWidget(self.realtime_button)
         layout.addWidget(self.sweep_button)
+        layout.addWidget(self.mosfet_button)
         layout.addWidget(self.compare_button)
 
         # Placeholder for the mode windows
         self.realtime_window = None
         self.sweep_window = None
+        self.mosfet_window = None
         self.compare_window = None
 
 
@@ -108,6 +114,8 @@ class MainApp(QMainWindow):
 
         if self.sweep_window:
             self.sweep_window.close()
+        if self.mosfet_window:
+            self.mosfet_window.close()
         if self.compare_window:
             self.compare_window.close()
 
@@ -132,6 +140,45 @@ class MainApp(QMainWindow):
             self.realtime_window.close()
         if self.compare_window:
             self.compare_window.close()
+        if self.mosfet_window:
+            self.mosfet_window.close()
+
+    def show_mosfet_sweep(self):
+        # 게이트/드레인 VISA 주소를 선택받아야 하므로, 예시로 두 개 선택창을 띄운다고 가정
+        visa_addresses = [self.visa_combobox.itemText(i) for i in range(self.visa_combobox.count())]
+        if len(visa_addresses) < 2:
+            QMessageBox.critical(self, "오류", "MOSFET 측정에는 두 개의 장비가 필요합니다.")
+            return
+
+        # 두 장비의 모델명을 확인
+        model_map = {}
+        for addr in visa_addresses[:2]:  # 콤보박스에서 2개만 사용한다고 가정
+            model = self.get_device_model(addr)
+            model_map[model] = addr
+
+        try:
+            gate_visa = model_map["2400"]
+            drain_visa = model_map["2410"]
+        except KeyError:
+            QMessageBox.critical(self, "오류", "2400(게이트), 2410(드레인) 장비가 모두 연결되어 있어야 합니다.")
+            return
+
+        # 이미 창이 열려 있으면 닫기
+        if hasattr(self, 'mosfet_window') and self.mosfet_window:
+            self.mosfet_window.close()
+            self.mosfet_window.deleteLater()
+            self.mosfet_window = None
+
+        self.mosfet_window = MosfetSweepWindow(gate_visa, drain_visa)
+        self.mosfet_window.show()
+
+        # 다른 창 닫기 (옵션)
+        if self.realtime_window:
+            self.realtime_window.close()
+        if self.sweep_window:
+            self.sweep_window.close()
+        if self.compare_window:
+            self.compare_window.close()
 
     def show_compare_mode(self):
         if self.compare_window is None:
@@ -141,6 +188,8 @@ class MainApp(QMainWindow):
             self.realtime_window.close()
         if self.sweep_window is not None:
             self.sweep_window.close()
+        if self.mosfet_window:
+            self.mosfet_window.close()
 
 def get_connected_devices():
     """PyVISA를 사용해 연결된 장비 검색"""
