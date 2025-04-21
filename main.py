@@ -1,6 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel, QMessageBox, QComboBox, QLineEdit
 from realtimecurrent import MainWindow as RealtimeCurrentWindow
+from mosfetrealtime import MOSFETWindow as RealTimeMosfetWindow
 from sweepvoltage import VoltageSweepApp as SweepVoltageWindow
 from mosfetsweep import MOSFETCharacterizationApp as MosfetSweepWindow
 from compare import DiodeComparisonApp as CompareWindow
@@ -42,6 +43,9 @@ class MainApp(QMainWindow):
         self.realtime_button = QPushButton("실시간 전류")
         self.realtime_button.clicked.connect(self.show_realtime_current)
 
+        self.mosfet_realtime_button = QPushButton("실시간 MOSFET")
+        self.mosfet_realtime_button.clicked.connect(self.show_realtime_mosfet)
+
         self.sweep_button = QPushButton("전압 스윕")
         self.sweep_button.clicked.connect(self.show_sweep_voltage)
 
@@ -52,12 +56,14 @@ class MainApp(QMainWindow):
         self.compare_button.clicked.connect(self.show_compare_mode)
 
         layout.addWidget(self.realtime_button)
+        layout.addWidget(self.mosfet_realtime_button)
         layout.addWidget(self.sweep_button)
         layout.addWidget(self.mosfet_button)
         layout.addWidget(self.compare_button)
 
         # Placeholder for the mode windows
         self.realtime_window = None
+        self.realtime_mosfet_window = None
         self.sweep_window = None
         self.mosfet_window = None
         self.compare_window = None
@@ -77,23 +83,17 @@ class MainApp(QMainWindow):
             self.visa_combobox.addItem(f"오류: {str(e)}")
     
     def get_device_model(self, visa_address):
-        """VISA 주소로 연결된 장비의 모델 확인"""
         try:
             rm = pyvisa.ResourceManager()
-            device = rm.open_resource(visa_address)
-            idn = device.query("*IDN?").strip()
-            device.close()
-            if "2461" in idn:
-                return "2461"
-            elif "2410" in idn:
-                return "2410"
-            elif "2400" in idn:
-                return "2400"
-            else:
-                return "Unknown"
+            with rm.open_resource(visa_address) as device:
+                idn = device.query("*IDN?").strip()
+                return idn.split(',')[1].replace("MODEL", "").strip()
+        except pyvisa.errors.VisaIOError as e:
+            print(f"장비 통신 오류 ({visa_address}): {e}")
+            return None
         except Exception as e:
-            print(f"장비 식별 오류: {e}")
-            return "Unknown"
+            print(f"일반 오류 ({visa_address}): {e}")
+            return None
 
     def show_realtime_current(self):
         visa_address = self.visa_combobox.currentText()
@@ -112,12 +112,57 @@ class MainApp(QMainWindow):
         self.realtime_window = RealtimeCurrentWindow(visa_address, self.device_model)
         self.realtime_window.show()
 
+        if self.realtime_mosfet_window:
+            self.realtime_mosfet_window.close()
         if self.sweep_window:
             self.sweep_window.close()
         if self.mosfet_window:
             self.mosfet_window.close()
         if self.compare_window:
             self.compare_window.close()
+
+    def show_realtime_mosfet(self):
+        visa_addresses = [self.visa_combobox.itemText(i) for i in range(self.visa_combobox.count())]
+        
+        # 장비 모델 식별
+        gate_visa = None
+        drain_visa = None
+        
+        for addr in visa_addresses:
+            try:
+                model = self.get_device_model(addr)
+                if model == "2400":
+                    gate_visa = addr
+                elif model == "2410":
+                    drain_visa = addr
+            except Exception as e:
+                print(f"장비 식별 오류 ({addr}): {e}")
+        
+        # 연결 확인
+        if not gate_visa or not drain_visa:
+            missing = []
+            if not gate_visa: missing.append("2400(게이트)")
+            if not drain_visa: missing.append("2410(드레인)")
+            QMessageBox.critical(
+                self, 
+                "장비 누락", 
+                f"다음 장비가 연결되지 않았습니다: {', '.join(missing)}\n"
+                f"현재 연결된 장비: {visa_addresses}"
+            )
+            return
+
+        if self.realtime_mosfet_window:
+            self.realtime_mosfet_window.close()
+        
+        self.realtime_mosfet_window = RealTimeMosfetWindow(
+            gate_visa=gate_visa,
+            drain_visa=drain_visa
+        )
+        self.realtime_mosfet_window.show()
+        
+        for window in [self.realtime_window, self.sweep_window, 
+                    self.mosfet_window, self.compare_window]:
+            if window: window.close()
 
     def show_sweep_voltage(self):
         visa_address = self.visa_combobox.currentText()
@@ -138,6 +183,8 @@ class MainApp(QMainWindow):
 
         if self.realtime_window:
             self.realtime_window.close()
+        if self.realtime_mosfet_window:
+            self.realtime_mosfet_window.close()
         if self.compare_window:
             self.compare_window.close()
         if self.mosfet_window:
@@ -175,6 +222,8 @@ class MainApp(QMainWindow):
         # 다른 창 닫기 (옵션)
         if self.realtime_window:
             self.realtime_window.close()
+        if self.realtime_mosfet_window:
+            self.realtime_mosfet_window.close()
         if self.sweep_window:
             self.sweep_window.close()
         if self.compare_window:
@@ -186,6 +235,8 @@ class MainApp(QMainWindow):
         self.compare_window.show()
         if self.realtime_window is not None:
             self.realtime_window.close()
+        if self.realtime_mosfet_window is not None:
+            self.realtime_mosfet_window.close()
         if self.sweep_window is not None:
             self.sweep_window.close()
         if self.mosfet_window:
