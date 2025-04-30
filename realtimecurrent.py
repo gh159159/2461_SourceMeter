@@ -174,7 +174,7 @@ class MainWindow(QMainWindow):
         """Start recording data to a CSV file."""
         try:
             # Open a new CSV file for writing
-            self.recording_file = open(f"C:/Users/LG/Desktop/2461_SourceMeter/실시간_전류_측정기록/current_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mode='w', newline='')
+            self.recording_file = open(f"C:/Users/LG/Desktop/2461_SourceMeter/diode_realtime_record/current_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mode='w', newline='')
             self.csv_writer = csv.writer(self.recording_file)
             
             # Write headers

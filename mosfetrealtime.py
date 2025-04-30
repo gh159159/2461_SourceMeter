@@ -175,13 +175,13 @@ class MOSFETWindow(QMainWindow):
     def start_record(self):
         try:
             self.recording_file = open(
-                f"current_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                f"C:/Users/LG/Desktop/2461_SourceMeter/mosfet_realtime_record/current_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mode='w', newline=''
             )
             self.csv_writer = csv.writer(self.recording_file)
             self.csv_writer.writerow([
                 "Timestamp", "Gate Voltage (V)", "Drain Voltage (V)",
-                "Current Limit (A)", "Gate Current (A)", "Drain Current (A)"
+                "Gate Current (A)", "Drain Current (A)", "Current Limit (A)"
             ])
             self.is_recording = True
             self.start_record_button.setEnabled(False)

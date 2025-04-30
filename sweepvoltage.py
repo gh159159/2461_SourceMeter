@@ -147,8 +147,8 @@ class VoltageSweepApp(QMainWindow):
             timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")  # 형식: YYYY-MM-DD_HH-MM-SS
 
             # 파일 이름 설정 (시간 추가)
-            image_filename = f"C:/Users/LG/Desktop/2461_SourceMeter/I-V특성_측정기록/graph_{timestamp}.png"
-            csv_filename = f"C:/Users/LG/Desktop/2461_SourceMeter/I-V특성_측정기록/data_{timestamp}.csv"
+            image_filename = f"C:/Users/LG/Desktop/2461_SourceMeter/diode_sweep_record/graph_{timestamp}.png"
+            csv_filename = f"C:/Users/LG/Desktop/2461_SourceMeter/diode_sweep_record/data_{timestamp}.csv"
 
             # 그래프를 이미지로 저장 (DPI=300)
             self.canvas.figure.savefig(image_filename, dpi=300)

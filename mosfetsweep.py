@@ -429,11 +429,11 @@ class MOSFETCharacterizationApp(QMainWindow):
                     raise ValueError("저장할 Id-Vds 데이터가 없습니다.")
                 
                 # 이미지 저장
-                img_filename = f"MOSFET_IdVds_{now}.png"
+                img_filename = f"C:/Users/LG/Desktop/2461_SourceMeter/mosfet_sweep_record/MOSFET_IdVds_{now}.png"
                 self.output_canvas.figure.savefig(img_filename, dpi=300)
                 
                 # CSV 데이터 저장
-                csv_filename = f"MOSFET_IdVds_{now}.csv"
+                csv_filename = f"C:/Users/LG/Desktop/2461_SourceMeter/mosfet_sweep_record/MOSFET_IdVds_{now}.csv"
                 with open(csv_filename, "w") as f:
                     # 헤더 작성
                     f.write("Vgs(V),Vds(V),Id(A)\n")
